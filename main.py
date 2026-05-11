@@ -389,6 +389,7 @@ Paste it AFTER your health endpoint (at the bottom, before __main__)
 from fastapi.responses import JSONResponse
 
 @app.get("/.well-known/agent-card")
+@app.get("/.well-known/agent-card.json")
 async def agent_card(request: Request):
     """A2A Agent Card — describes this agent's capabilities to Prompt Opinion"""
     base_url = str(request.base_url).rstrip("/").replace("http://", "https://")
