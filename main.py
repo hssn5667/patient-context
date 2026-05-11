@@ -380,6 +380,73 @@ async def clear_patient_cache(patient_id: str) -> dict:
             status_code=404,
             detail=f"No cache entry found for patient {patient_id}"
         )
+    
+"""
+Add this to agents/patient_context/main.py
+Paste it AFTER your health endpoint (at the bottom, before __main__)
+"""
+
+from fastapi.responses import JSONResponse
+
+@app.get("/.well-known/agent-card")
+async def agent_card(request: Request):
+    """A2A Agent Card — describes this agent's capabilities to Prompt Opinion"""
+    base_url = str(request.base_url).rstrip("/")
+    return JSONResponse({
+        "schema_version": "1.0",
+        "name": "MediTwin Patient Context Agent",
+        "description": (
+            "FHIR R4 data ingestion and normalization layer. "
+            "Fetches patient demographics, conditions, medications, allergies, "
+            "lab results, and diagnostic reports from any FHIR server. "
+            "Supports SHARP context headers for Prompt Opinion platform integration."
+        ),
+        "version": "1.0.0",
+        "url": base_url,
+        "provider": {
+            "name": "Tayyab Hussain — MediTwin AI",
+            "url": "https://github.com/your-repo"
+        },
+        "capabilities": {
+            "streaming": True,
+            "sharp_context": True,
+            "fhir_version": "R4"
+        },
+        "skills": [
+            {
+                "id": "fetch_patient_context",
+                "name": "Fetch Patient Context",
+                "description": (
+                    "Fetch and normalize complete patient data from FHIR R4 server. "
+                    "Returns demographics, active conditions, medications, allergies, "
+                    "lab results, and imaging reports in a unified PatientState."
+                ),
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "patient_id": {
+                            "type": "string",
+                            "description": "FHIR Patient resource ID"
+                        },
+                        "fhir_base_url": {
+                            "type": "string",
+                            "description": "FHIR server base URL",
+                            "default": "https://hapi.fhir.org/baseR4"
+                        }
+                    },
+                    "required": ["patient_id"]
+                },
+                "tags": ["fhir", "patient", "context", "healthcare"]
+            }
+        ],
+        "defaultInputModes": ["application/json"],
+        "defaultOutputModes": ["application/json"],
+        "endpoints": {
+            "fetch": f"{base_url}/fetch",
+            "health": f"{base_url}/health",
+            "stream": f"{base_url}/fetch/stream"
+        }
+    })
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HEALTH CHECK
