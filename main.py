@@ -416,7 +416,14 @@ async def agent_card(request: Request):
     base_url = str(request.base_url).rstrip("/").replace("http://", "https://")
     return JSONResponse({
         "name": "MediTwin Patient Context Agent",
-        "description": "FHIR R4 data ingestion layer. Fetches and normalizes patient demographics, conditions, medications, allergies, and lab results from any FHIR server.",
+        "description": (
+            "Foundation agent of MediTwin AI. Fetches and normalizes all relevant FHIR R4 "
+            "resources (Patient, Condition, MedicationRequest, AllergyIntolerance, Observation, "
+            "DiagnosticReport) into a unified PatientState model. Supports SHARP context header "
+            "propagation for production EHR integration and direct request body mode for "
+            "development. Results are Redis-cached (10-minute TTL) and persisted to PostgreSQL. "
+            "Every downstream MediTwin agent depends on this agent's output."
+        ),
         "version": "1.0.0",
         "url": base_url,
         "provider": {
@@ -428,21 +435,83 @@ async def agent_card(request: Request):
             {
                 "url": f"{base_url}/fetch",
                 "protocolBinding": "HTTP+JSON",
-                "protocolVersion": "1.0"
+                "protocolVersion": "1.0",
+                "description": "Blocking fetch — returns full PatientState when all FHIR resources are ready."
+            },
+            {
+                "url": f"{base_url}/stream",
+                "protocolBinding": "HTTP+SSE",
+                "protocolVersion": "1.0",
+                "description": "SSE streaming fetch — emits status/progress/complete events in real time."
             }
         ],
         "capabilities": {
             "streaming": True,
-            "pushNotifications": False
+            "pushNotifications": False,
+            "stateTransitionHistory": True
         },
         "defaultInputModes": ["application/json"],
-        "defaultOutputModes": ["application/json"],
+        "defaultOutputModes": ["application/json", "text/event-stream"],
         "skills": [
             {
                 "id": "fetch_patient_context",
                 "name": "Fetch Patient Context",
-                "description": "Fetch complete patient data from FHIR R4 server including demographics, conditions, medications, allergies, and labs.",
-                "tags": ["fhir", "patient", "healthcare"],
+                "description": (
+                    "Fetches all FHIR R4 resources for a patient in parallel (6 resource types: "
+                    "Patient, Condition, MedicationRequest, AllergyIntolerance, Observation, "
+                    "DiagnosticReport) and normalizes them into a structured PatientState. "
+                    "Checks Redis cache first; falls back to live FHIR server on cache miss. "
+                    "Accepts patient identity via SHARP context headers (production) or request body (dev)."
+                ),
+                "tags": ["fhir", "patient", "ehr", "normalization", "redis-cache", "sharp"],
+                "inputModes": ["application/json"],
+                "outputModes": ["application/json"]
+            },
+            {
+                "id": "stream_patient_context",
+                "name": "Stream Patient Context (SSE)",
+                "description": (
+                    "SSE streaming variant of fetch_patient_context. Emits ordered events: "
+                    "status (connecting, fetching, normalizing), progress (per resource type, 0-60%), "
+                    "and a final complete event containing the full PatientState. "
+                    "Allows the orchestrator to proxy real-time loading progress to the frontend."
+                ),
+                "tags": ["fhir", "patient", "sse", "streaming", "real-time"],
+                "inputModes": ["application/json"],
+                "outputModes": ["text/event-stream"]
+            },
+            {
+                "id": "get_patient_history",
+                "name": "Get Patient Fetch History",
+                "description": (
+                    "Returns paginated fetch history for a patient from PostgreSQL, including "
+                    "per-session resource counts, cache hit/miss status, source (SHARP or direct), "
+                    "FHIR base URL, and fetch timing. Supports latest-only and request-ID lookups."
+                ),
+                "tags": ["history", "audit", "patient", "postgresql"],
+                "inputModes": ["application/json"],
+                "outputModes": ["application/json"]
+            },
+            {
+                "id": "get_patient_stats",
+                "name": "Get Patient Context Stats",
+                "description": (
+                    "Returns aggregate statistics across all fetch sessions for a patient: "
+                    "total sessions, cache hit rate, SHARP vs direct breakdown, imaging availability, "
+                    "average/peak condition and lab counts, and first/latest fetch timestamps."
+                ),
+                "tags": ["stats", "analytics", "patient", "postgresql"],
+                "inputModes": ["application/json"],
+                "outputModes": ["application/json"]
+            },
+            {
+                "id": "clear_patient_cache",
+                "name": "Clear Patient Cache",
+                "description": (
+                    "Invalidates the Redis cache entry for a specific patient, forcing the next "
+                    "fetch to retrieve fresh data from the FHIR server."
+                ),
+                "tags": ["cache", "redis", "invalidation"],
                 "inputModes": ["application/json"],
                 "outputModes": ["application/json"]
             }
