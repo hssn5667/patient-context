@@ -405,6 +405,7 @@ async def agent_card(request: Request):
         "version": "1.0.0",
         "url": base_url,
         "provider": {
+            "organization": "MediTwin AI",
             "name": "Tayyab Hussain — MediTwin AI",
             "url": "https://github.com/hssn5667/patient-context"
         },
@@ -445,7 +446,7 @@ async def agent_card(request: Request):
         "endpoints": {
             "fetch": f"{base_url}/fetch",
             "health": f"{base_url}/health",
-            "stream": f"{base_url}/fetch/stream"
+            "stream": f"{base_url}/stream"
         }
     })
 
