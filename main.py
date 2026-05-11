@@ -388,68 +388,44 @@ Paste it AFTER your health endpoint (at the bottom, before __main__)
 
 from fastapi.responses import JSONResponse
 
-@app.get("/.well-known/agent-card")
 @app.get("/.well-known/agent-card.json")
+@app.get("/.well-known/agent-card")
 async def agent_card(request: Request):
-    """A2A Agent Card — describes this agent's capabilities to Prompt Opinion"""
     base_url = str(request.base_url).rstrip("/").replace("http://", "https://")
     return JSONResponse({
-        "schema_version": "1.0",
         "name": "MediTwin Patient Context Agent",
-        "description": (
-            "FHIR R4 data ingestion and normalization layer. "
-            "Fetches patient demographics, conditions, medications, allergies, "
-            "lab results, and diagnostic reports from any FHIR server. "
-            "Supports SHARP context headers for Prompt Opinion platform integration."
-        ),
+        "description": "FHIR R4 data ingestion layer. Fetches and normalizes patient demographics, conditions, medications, allergies, and lab results from any FHIR server.",
         "version": "1.0.0",
         "url": base_url,
         "provider": {
             "organization": "MediTwin AI",
-            "name": "Tayyab Hussain — MediTwin AI",
+            "name": "Tayyab Hussain",
             "url": "https://github.com/hssn5667/patient-context"
         },
+        "supportedInterfaces": [
+            {
+                "url": f"{base_url}/fetch",
+                "protocolBinding": "HTTP+JSON",
+                "protocolVersion": "1.0"
+            }
+        ],
         "capabilities": {
             "streaming": True,
-            "sharp_context": True,
-            "fhir_version": "R4"
+            "pushNotifications": False
         },
+        "defaultInputModes": ["application/json"],
+        "defaultOutputModes": ["application/json"],
         "skills": [
             {
                 "id": "fetch_patient_context",
                 "name": "Fetch Patient Context",
-                "description": (
-                    "Fetch and normalize complete patient data from FHIR R4 server. "
-                    "Returns demographics, active conditions, medications, allergies, "
-                    "lab results, and imaging reports in a unified PatientState."
-                ),
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "patient_id": {
-                            "type": "string",
-                            "description": "FHIR Patient resource ID"
-                        },
-                        "fhir_base_url": {
-                            "type": "string",
-                            "description": "FHIR server base URL",
-                            "default": "https://hapi.fhir.org/baseR4"
-                        }
-                    },
-                    "required": ["patient_id"]
-                },
-                "tags": ["fhir", "patient", "context", "healthcare"]
+                "description": "Fetch complete patient data from FHIR R4 server including demographics, conditions, medications, allergies, and labs.",
+                "tags": ["fhir", "patient", "healthcare"],
+                "inputModes": ["application/json"],
+                "outputModes": ["application/json"]
             }
-        ],
-        "defaultInputModes": ["application/json"],
-        "defaultOutputModes": ["application/json"],
-        "endpoints": {
-            "fetch": f"{base_url}/fetch",
-            "health": f"{base_url}/health",
-            "stream": f"{base_url}/stream"
-        }
+        ]
     })
-
 # ══════════════════════════════════════════════════════════════════════════════
 # HEALTH CHECK
 # ══════════════════════════════════════════════════════════════════════════════
