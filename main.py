@@ -391,7 +391,7 @@ from fastapi.responses import JSONResponse
 @app.get("/.well-known/agent-card")
 async def agent_card(request: Request):
     """A2A Agent Card — describes this agent's capabilities to Prompt Opinion"""
-    base_url = str(request.base_url).rstrip("/")
+    base_url = str(request.base_url).rstrip("/").replace("http://", "https://")
     return JSONResponse({
         "schema_version": "1.0",
         "name": "MediTwin Patient Context Agent",
@@ -405,7 +405,7 @@ async def agent_card(request: Request):
         "url": base_url,
         "provider": {
             "name": "Tayyab Hussain — MediTwin AI",
-            "url": "https://github.com/your-repo"
+            "url": "https://github.com/hssn5667/patient-context"
         },
         "capabilities": {
             "streaming": True,
