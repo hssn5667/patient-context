@@ -1,0 +1,13 @@
+fastapi
+"uvicorn[standard]"
+pydantic 
+pydantic-settings
+asyncpg 
+httpx 
+"redis[hiredis]" 
+langchain 
+langchain-google-genai
+langgraph 
+langsmith 
+python-dotenv 
+"fhirclient==4.2.1"
