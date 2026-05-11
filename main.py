@@ -381,15 +381,37 @@ async def clear_patient_cache(patient_id: str) -> dict:
             detail=f"No cache entry found for patient {patient_id}"
         )
     
-"""
-Add this to agents/patient_context/main.py
-Paste it AFTER your health endpoint (at the bottom, before __main__)
-"""
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# HEALTH CHECK
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/health")
+async def health():
+    """
+    Health check endpoint
+    
+    Verifies:
+    - HTTP client is initialized
+    - Redis connection is active
+    - FHIR server is reachable (optional check)
+    """
+    redis_ok = await redis_client._client.ping() if redis_client._client else False
+    
+    return {
+        "status": "healthy" if redis_ok else "degraded",
+        "agent": "patient-context",
+        "version": "1.0.0",
+        "redis_connected": redis_ok,
+        "http_client_ready": http_client is not None,
+        "fhir_base_url": os.getenv("FHIR_BASE_URL", "https://hapi.fhir.org/baseR4")
+    }
 
 from fastapi.responses import JSONResponse
 
 @app.get("/.well-known/agent-card.json")
-@app.get("/.well-known/agent-card")
 async def agent_card(request: Request):
     base_url = str(request.base_url).rstrip("/").replace("http://", "https://")
     return JSONResponse({
@@ -426,27 +448,3 @@ async def agent_card(request: Request):
             }
         ]
     })
-# ══════════════════════════════════════════════════════════════════════════════
-# HEALTH CHECK
-# ══════════════════════════════════════════════════════════════════════════════
-
-@app.get("/health")
-async def health():
-    """
-    Health check endpoint
-    
-    Verifies:
-    - HTTP client is initialized
-    - Redis connection is active
-    - FHIR server is reachable (optional check)
-    """
-    redis_ok = await redis_client._client.ping() if redis_client._client else False
-    
-    return {
-        "status": "healthy" if redis_ok else "degraded",
-        "agent": "patient-context",
-        "version": "1.0.0",
-        "redis_connected": redis_ok,
-        "http_client_ready": http_client is not None,
-        "fhir_base_url": os.getenv("FHIR_BASE_URL", "https://hapi.fhir.org/baseR4")
-    }
