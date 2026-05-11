@@ -1,5 +1,5 @@
 fastapi
-"uvicorn[standard]"
+uvicorn[standard]
 pydantic 
 pydantic-settings
 asyncpg 
@@ -10,4 +10,4 @@ langchain-google-genai
 langgraph 
 langsmith 
 python-dotenv 
-"fhirclient==4.2.1"
+fhirclient==4.2.1
